@@ -23,11 +23,7 @@
       </div>
       <div class="settingsItemNoPadding">
         <label for="mode">Model:</label>
-        <select id="mode">
-          <option value="eleven_turbo_v2">Turbo v2</option>
-          <option value="eleven_turbo_v2_5">Turbo v2.5</option>
-          <option value="eleven_multilingual_v2">Multilingual v2</option>
-        </select>
+        <select id="mode"></select>
       </div>
       <div class="settingsItemNoPadding">
         <p>
@@ -89,13 +85,13 @@
               >like this</a
             >
           </li>
-          <li>Paste the API key into the input field below</li>
+          <li>Paste your API keys (one per line) into the input field below</li>
           <li>Click "Set" to get started</li>
         </ul>
       </div>
       <div class="welcomeInput">
-        <label for="apiKey">API Key:</label>
-        <input type="text" id="apiKey" />
+        <label for="apiKeys">API Keys:</label>
+        <textarea id="apiKeys" rows="3"></textarea>
         <button id="setApiKey">Set</button>
       </div>
     </div>

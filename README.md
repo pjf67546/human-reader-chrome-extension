@@ -12,9 +12,14 @@ Check out the demo here:
 
 
 ### Version 1.6 -  [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/31)
-New features: 
+New features:
 - Allowing users to stop audio from playing
 - Adding support for Turbo v2.5
+
+### Version 1.7
+New features:
+- Accept multiple API keys separated by commas or new lines
+- Rotate keys automatically and fetch available models dynamically
 
 ### Version 1.3 -  [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/24)
 New features: 

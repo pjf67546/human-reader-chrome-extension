@@ -23,11 +23,7 @@
       </div>
       <div class="settingsItemNoPadding">
         <label for="mode">Model:</label>
-        <select id="mode">
-          <option value="eleven_turbo_v2">Turbo v2</option>
-          <option value="eleven_turbo_v2_5">Turbo v2.5</option>
-          <option value="eleven_multilingual_v2">Multilingual v2</option>
-        </select>
+        <select id="mode"></select>
       </div>
       <div class="settingsItemNoPadding">
         <p>
@@ -64,6 +60,10 @@
           <option value="2.5" label="2.5x"></option>
         </datalist>
       </div>
+      <div class="settingsItem">
+        <label for="storedApiKeys">API Keys:</label>
+        <textarea id="storedApiKeys" rows="2" readonly></textarea>
+      </div>
       <div class="clearStorage">
         <a href="#" id="clearStorage">Clear all data</a>
       </div>
@@ -90,12 +90,13 @@
             >
           </li>
           <li>Paste the API key into the input field below</li>
+          <li>Multiple keys can be separated by commas or new lines</li>
           <li>Click "Set" to get started</li>
         </ul>
       </div>
       <div class="welcomeInput">
-        <label for="apiKey">API Key:</label>
-        <input type="text" id="apiKey" />
+        <label for="apiKey">API Key(s):</label>
+        <input type="text" id="apiKey" placeholder="key1,key2,..." />
         <button id="setApiKey">Set</button>
       </div>
     </div>

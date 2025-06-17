@@ -43,8 +43,22 @@ const readStorage = async (keys) => {
   });
 };
 
+const getNextApiKey = async () => {
+  const storage = await readStorage(["apiKeys", "apiKeyIndex", "apiKey"]);
+  if (storage.apiKeys && storage.apiKeys.length > 0) {
+    const index = storage.apiKeyIndex || 0;
+    const apiKey = storage.apiKeys[index % storage.apiKeys.length];
+    await chrome.storage.local.set({
+      apiKeyIndex: (index + 1) % storage.apiKeys.length,
+    });
+    return apiKey;
+  }
+  return storage.apiKey;
+};
+
 const fetchResponse = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
+  const storage = await readStorage(["selectedVoiceId", "mode"]);
+  const apiKey = await getNextApiKey();
   const selectedVoiceId = storage.selectedVoiceId
     ? storage.selectedVoiceId
     : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
@@ -60,7 +74,7 @@ const fetchResponse = async () => {
       method: "POST",
       headers: {
         Accept: codec,
-        "xi-api-key": storage.apiKey,
+        "xi-api-key": apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -111,8 +125,8 @@ const stopAudio = () => {
 
 let sourceOpenEventAdded = false;
 const streamAudio = async () => {
-  const storage = await readStorage(["apiKey", "speed"]);
-  if (!storage.apiKey) {
+  const storage = await readStorage(["apiKeys", "apiKey", "speed"]);
+  if (!((storage.apiKeys && storage.apiKeys.length > 0) || storage.apiKey)) {
     handleMissingApiKey();
     return;
   }

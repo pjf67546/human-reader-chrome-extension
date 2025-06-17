@@ -61,7 +61,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   flex: 2;
   margin-left: 12px;
   padding: 4px;

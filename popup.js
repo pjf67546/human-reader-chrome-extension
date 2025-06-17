@@ -18,6 +18,20 @@ const readStorage = async (keys) => {
   });
 };
 
+const getNextApiKey = async () => {
+  const storage = await readStorage(["apiKeys", "apiKeyIndex", "apiKey"]);
+  if (storage.apiKeys && storage.apiKeys.length > 0) {
+    const index = storage.apiKeyIndex || 0;
+    const apiKey = storage.apiKeys[index % storage.apiKeys.length];
+    await setStorageItem(
+      "apiKeyIndex",
+      (index + 1) % storage.apiKeys.length
+    );
+    return apiKey;
+  }
+  return storage.apiKey;
+};
+
 const setWelcomeScreen = () => {
   const settings = document.getElementById("settings");
   const welcome = document.getElementById("welcome");
@@ -39,6 +53,7 @@ const setSettingsScreen = async () => {
   storage = await readStorage(["mode", "speed"]);
   document.getElementById("mode").value = storage.mode;
   setSpeedValue(storage.speed || 1);
+  await populateApiKeys();
 };
 
 const setSpeedValue = (value) => {
@@ -47,6 +62,7 @@ const setSpeedValue = (value) => {
 };
 
 const loadStartupData = async () => {
+  await fetchModels();
   const voices = await fetchVoices();
   storage = await readStorage([
     "apiKey",
@@ -84,28 +100,93 @@ const populateVoices = async () => {
   }
 };
 
-const setAPIKey = async (apiKey) => {
-  const response = await fetch("https://api.elevenlabs.io/v1/user", {
-    method: "GET",
-    headers: {
-      "xi-api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-  });
-  if (response.ok) {
-    await setStorageItem("apiKey", apiKey);
-  } else {
+const populateModels = async () => {
+  const storage = await readStorage(["models", "mode"]);
+  const models = storage.models;
+  if (models) {
+    const select = document.getElementById("mode");
+    select.innerHTML = "";
+    models.forEach((m) => {
+      const option = document.createElement("option");
+      option.value = m.id;
+      option.text = m.name;
+      select.appendChild(option);
+    });
+    if (storage.mode) select.value = storage.mode;
+  }
+};
+
+const populateApiKeys = async () => {
+  const storage = await readStorage(["apiKeys", "apiKey"]);
+  const field = document.getElementById("storedApiKeys");
+  if (field) {
+    const keys =
+      storage.apiKeys && storage.apiKeys.length > 0
+        ? storage.apiKeys.join("\n")
+        : storage.apiKey || "";
+    field.value = keys;
+  }
+};
+
+const setAPIKeys = async (apiKeysInput) => {
+  const keys = apiKeysInput
+    .split(/[,\n]+/)
+    .map((k) => k.trim())
+    .filter((k) => k);
+  const validKeys = [];
+  for (const key of keys) {
+    const response = await fetch("https://api.elevenlabs.io/v1/user", {
+      method: "GET",
+      headers: {
+        "xi-api-key": key,
+        "Content-Type": "application/json",
+      },
+    });
+    if (response.ok) {
+      validKeys.push(key);
+    }
+  }
+  if (validKeys.length === 0) {
     throw new Error("API request failed");
+  }
+  await setStorageItem("apiKeys", validKeys);
+  await setStorageItem("apiKeyIndex", 0);
+  await setStorageItem("apiKey", validKeys[0]);
+};
+
+const fetchModels = async () => {
+  const apiKey = await getNextApiKey();
+  if (apiKey) {
+    let response = await fetch("https://api.elevenlabs.io/v1/models", {
+      method: "GET",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.models) {
+        const models = data.models.map((m) => ({
+          id: m.model_id,
+          name: m.name,
+        }));
+        await setStorageItem("models", models);
+        await populateModels();
+        return models;
+      }
+    }
   }
 };
 
 const fetchVoices = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
-  if (storage.apiKey) {
+  const storage = await readStorage(["selectedVoiceId", "mode"]);
+  const apiKey = await getNextApiKey();
+  if (apiKey) {
     let response = await fetch("https://api.elevenlabs.io/v1/voices", {
       method: "GET",
       headers: {
-        "xi-api-key": storage.apiKey,
+        "xi-api-key": apiKey,
         "Content-Type": "application/json",
       },
     });
@@ -134,9 +215,11 @@ const fetchVoices = async () => {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const storage = await readStorage(["apiKey"]);
-  if (storage.apiKey) {
+  const storage = await readStorage(["apiKeys", "apiKey"]);
+  if ((storage.apiKeys && storage.apiKeys.length > 0) || storage.apiKey) {
     populateVoices();
+    populateModels();
+    populateApiKeys();
     setSettingsScreen();
   } else {
     setWelcomeScreen();
@@ -154,9 +237,10 @@ document.getElementById("setApiKey").addEventListener("click", async () => {
   const inputValue = document.getElementById("apiKey").value;
   button.textContent = "...";
   try {
-    await setAPIKey(inputValue);
+    await setAPIKeys(inputValue);
     await loadStartupData();
     await setSettingsScreen();
+    await populateApiKeys();
     button.textContent = "Set";
   } catch (error) {
     console.log(error);

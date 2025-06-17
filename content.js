@@ -43,24 +43,33 @@ const readStorage = async (keys) => {
   });
 };
 
+const fetchWithApiKeys = async (url, options, apiKeys) => {
+  for (const key of apiKeys) {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...(options.headers || {}), "xi-api-key": key },
+    });
+    if (response.ok) {
+      return response;
+    }
+  }
+  throw new Error("All API keys failed");
+};
+
 const fetchResponse = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
+  const storage = await readStorage(["apiKeys", "apiKey", "selectedVoiceId", "mode"]);
+  const apiKeys = storage.apiKeys || (storage.apiKey ? [storage.apiKey] : []);
   const selectedVoiceId = storage.selectedVoiceId
     ? storage.selectedVoiceId
     : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-  const mode = storage.mode
-  const model_id =
-    (mode === "englishfast" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
-      (mode === "multilingual" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
-        "eleven_turbo_v2_5";
+  const model_id = storage.mode || "eleven_turbo_v2_5";
 
-  const response = await fetch(
+  const response = await fetchWithApiKeys(
     `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,
     {
       method: "POST",
       headers: {
         Accept: codec,
-        "xi-api-key": storage.apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -71,7 +80,8 @@ const fetchResponse = async () => {
           stability: 0.5,
         },
       }),
-    }
+    },
+    apiKeys
   );
   return response;
 };
@@ -111,8 +121,9 @@ const stopAudio = () => {
 
 let sourceOpenEventAdded = false;
 const streamAudio = async () => {
-  const storage = await readStorage(["apiKey", "speed"]);
-  if (!storage.apiKey) {
+  const storage = await readStorage(["apiKeys", "apiKey", "speed"]);
+  const apiKeys = storage.apiKeys || (storage.apiKey ? [storage.apiKey] : []);
+  if (apiKeys.length === 0) {
     handleMissingApiKey();
     return;
   }
